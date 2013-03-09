@@ -4,6 +4,7 @@ var EventEmitter = require('events').EventEmitter,
 	mdns = require('mdns'),
 	carrier = require('carrier');
 
+
 var	WiThrottle = function(name, port, cmdStation, callback) {
 	var self = this;
 	EventEmitter.call(self);
@@ -53,9 +54,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 			}
 		});
 	});
-	
-	console.log("hello?");
-	
+
 	self.server.listen(self.port, function () {
 		console.log("withrottle: " + self.name + " listening on port "+ self.port);
 		self.ad = mdns.createAdvertisement(mdns.tcp('withrottle'), self.port, {name: self.name}).start();
