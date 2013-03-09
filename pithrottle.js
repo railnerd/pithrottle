@@ -34,14 +34,14 @@ cmdStation.on('SEND', function (data) {
 });
 
 
-cmdStation.on('ready', function () {
+cmdStation.on('ready', function cmdStationReady() {
 
 	// check command station version
 	cmdStation.getVersion(function(vers) {
 		console.log("Command Station Version: "+ hexDump(vers));
 	});
 
-	var WiThrottle = new WiThrottle(program.name, program.port, cmdStation, function (err) {
+	var wiThrottleServer = new WiThrottle(program.name, program.port, cmdStation, function (err) {
 		if (err !== undefined) {
 			console.log("Failed to initialize WiThrottle server: " + err);
 			process.exit(1);

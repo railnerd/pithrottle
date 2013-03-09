@@ -4,7 +4,6 @@ var EventEmitter = require('events').EventEmitter,
 	mdns = require('mdns'),
 	carrier = require('carrier');
 
-
 var	WiThrottle = function(name, port, cmdStation, callback) {
 	var self = this;
 	EventEmitter.call(self);
@@ -12,6 +11,9 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	self.name = name;
 	self.port = port;
 	self.cmdStation = cmdStation;
+	self.callback = callback;
+	
+	console.log("in WiThrottle Constructor");
 	
 	self.server = net.createServer( function (s) {
 		self.lineHandler = carrier.carry(s);
@@ -27,7 +29,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 		
 		s.on('error', function (e) {
 			console.log("createServer got an error "+e.message());
-			callback(e);
+			self.callback(e);
 		});
 
 		self.lineHandler.on('line', function(msg) {
@@ -51,6 +53,8 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 			}
 		});
 	});
+	
+	console.log("hello?");
 	
 	self.server.listen(self.port, function () {
 		console.log("withrottle: " + self.name + " listening on port "+ self.port);
