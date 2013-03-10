@@ -14,8 +14,6 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	self.cmdStation = cmdStation;
 	self.callback = callback;
 	
-	console.log("in WiThrottle Constructor");
-	
 	self.server = net.createServer( function (s) {
 		self.lineHandler = carrier.carry(s);
 
@@ -29,8 +27,9 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 		});
 		
 		s.on('error', function (e) {
-			console.log("createServer got an error "+e.message());
-			self.callback(e);
+			self.emit('error',e);
+			if (self.callback !== 'undefined')
+				self.callback(e);
 		});
 
 		self.lineHandler.on('line', function(msg) {
@@ -56,10 +55,13 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	});
 
 	self.server.listen(self.port, function () {
-		console.log("withrottle: " + self.name + " listening on port "+ self.port);
 		self.ad = mdns.createAdvertisement(mdns.tcp('withrottle'), self.port, {name: self.name}).start();
+		self.emit('ready');
 	});
 
+	self.on('ready', function () {
+		console.log("WiThrottle emulator: \"" + self.name + ".local\" listening on port "+ self.port);
+	});
 }
 util.inherits(WiThrottle, EventEmitter);
 
