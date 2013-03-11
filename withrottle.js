@@ -13,17 +13,21 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	self.port = port;
 	self.cmdStation = cmdStation;
 	self.callback = callback;
+	self.clients = {};
 	
 	self.server = net.createServer( function (s) {
-		self.lineHandler = carrier.carry(s);
+		// keep track of new connection in clients object
+		s.__clientKey = s.remoteAddress;
+		self.clients[s.__clientKey]={'address': s.remoteAddress};
 
-		console.log("client connected");
+		self.lineHandler = carrier.carry(s);
 
 		// tell WiThrottle/EngineDriver we are version 1.6, as we don't support new whizzy features
 		s.write('VN1.6\r\n');
 
 		s.on('end', function() {
-			console.log("client disconnected");
+			// forget this client
+			delete self.clients[s.__clientKey];
 		});
 		
 		s.on('error', function (e) {
@@ -64,6 +68,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	});
 }
 util.inherits(WiThrottle, EventEmitter);
+
 
 WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 	var cmd = msg.charAt(0),
@@ -107,6 +112,7 @@ WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 			break;
 	}
 }
+
 
 module.exports = {
 	WiThrottle: WiThrottle
