@@ -19,7 +19,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 		// keep track of new connection in clients object
 		s.__clientKey = s.remoteAddress;
 		self.clients[s.__clientKey]={'ip': s.remoteAddress};
-		console.log("connect: "+util.inspect(self.clients));
+		self.logClients("CONNECT");
 
 		self.lineHandler = carrier.carry(s);
 
@@ -29,9 +29,9 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 		s.on('end', function() {
 			// forget this client
 			delete self.clients[s.__clientKey];
-			console.log("DISCONNECT: "+util.inspect(self.clients));
+			self.logClients("DISCONNECT");
 		});
-		
+
 		s.on('error', function (e) {
 			self.emit('error',e);
 			if (self.callback !== 'undefined')
@@ -48,11 +48,11 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 				case 'S':
 					self.doThrottleCommand(s,cmd,arg);
 					break;
-	
+
 				case 'Q':
 					s.end();
 					break;
-	
+
 				default:
 					console.log("unhandled message: '"+ msg + "'");
 					break;
@@ -72,21 +72,34 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 util.inherits(WiThrottle, EventEmitter);
 
 
-WiThrottle.prototype.getThrottleProperty = function (s,whichThrottle,key) {
-	if (this.clients[s.__clientKey][whichThrottle] === undefined) {
-		return undefined;
-	} else {
-		return this.clients[s.__clientKey][whichThrottle][key];
-	}
+WiThrottle.prototype.logClients = function(msg) {
+	console.log(msg + ": " + util.inspect(this.clients));
+}
+
+WiThrottle.prototype.logThrottle = function(msg, s, whichThrottle) {
+	console.log(msg + ": " + util.inspect(this.clients[s.__clientKey][whichThrottle]));
 }
 
 
-WiThrottle.prototype.setThrottleProperty = function (s,whichThrottle,prop,val) {
+WiThrottle.prototype.getThrottleProperty = function (s, whichThrottle, prop) {
+	if (this.clients[s.__clientKey][whichThrottle] === undefined) {
+		return undefined;
+	} else {
+		return this.clients[s.__clientKey][whichThrottle][prop];
+	}
+}
+
+WiThrottle.prototype.setThrottleProperty = function (s,whichThrottle, prop, val) {
 	if (this.clients[s.__clientKey][whichThrottle] === undefined) {
 		this.clients[s.__clientKey][whichThrottle] = {};
 	}
 	this.clients[s.__clientKey][whichThrottle][prop] = val;
 }
+
+WiThrottle.prototype.releaseThrottle = function(s, whichThrottle) {
+	delete this.clients[s.__clientKey][whichThrottle];
+}
+
 
 WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 	var self = this,
@@ -96,29 +109,29 @@ WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 	switch (cmd) {
 		case 'L':
 		case 'S':
-			self.setThrottleProperty(s,whichThrottle,'address',arg);
-			console.log("SET ADDRESS: " + util.inspect(self.clients));
+			self.setThrottleProperty(s, whichThrottle, 'address', arg);
+			self.logThrottle("SET ADDRESS", s, whichThrottle);
 			s.write(whichThrottle + arg);
 			break;
 
 		case 'R':
 			if (msg.charAt(1) == '0') {
 				self.setThrottleProperty(s,whichThrottle,'direction','R');
-				console.log("REVERSE: " + util.inspect(self.clients[s.__clientKey]));
+				self.logThrottle("REVERSE", s, whichThrottle);
 			} else {
 				self.setThrottleProperty(s,whichThrottle,'direction','F');
-				console.log("FORWARD: " + util.inspect(self.clients[s.__clientKey]));
+				self.logThrottle("FORWARD", s, whichThrottle);
 			}
 			break;
 
 		case 'I':
 			self.setThrottleProperty(s,whichThrottle,'speed',0);
-			console.log("IDLE: " + util.inspect(self.clients[s.__clientKey]));
+			self.logThrottle("IDLE", s, whichThrottle);
 			break;
 
 		case 'X':
 			self.setThrottleProperty(s,whichThrottle,'speed',1);
-			console.log("ESTOP: " + util.inspect(self.clients[s.__clientKey]));
+			self.logThrottle("ESTOP", s, whichThrottle);
 			break;
 
 		case 'V':
@@ -127,14 +140,13 @@ WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 				self.setThrottleProperty(s,whichThrottle,'direction','F');
 			}
 			self.setThrottleProperty(s,whichThrottle,'speed',arg);
-			console.log("SPEED: " + util.inspect(self.clients[s.__clientKey]));
+			self.logThrottle("SPEED", s, whichThrottle);
 			break;
 
 		case 'r':
 		case 'd':
-			console.log(whichThrottle + " RELEASE/DISPATCH");
-			delete self.clients[s.__clientKey][whichThrottle];
-			console.log("RELEASE: " + util.inspect(self.clients));
+			self.logThrottle("RELEASE/DISPATCH", s, whichThrottle);
+			self.releaseThrottle(s,whichThrottle);
 			s.write(whichThrottle + "Not Set");
 			break;
 
