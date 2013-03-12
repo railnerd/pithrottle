@@ -42,10 +42,12 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 			cmd = msgString.charAt(0),
 			arg = msgString.slice(1);
 
+			console.log("LINE IN: "+msgString);
+
 			switch (msgString.charAt(0)) {
 				case 'T':
 				case 'S':
-					self.doThrottleCommand(s,cmd,arg);
+					self.handleThrottleCommand(s,cmd,arg);
 					break;
 
 				case 'Q':
@@ -97,20 +99,32 @@ WiThrottle.prototype.setThrottleProperty = function (s,whichThrottle, prop, val)
 
 WiThrottle.prototype.releaseThrottle = function(s, whichThrottle) {
 	delete this.clients[s.remoteAddress][whichThrottle];
+	s.write(whichThrottle + "Not Set");
 }
 
+WiThrottle.prototype.pushSettingsToCommandStation = function (s, whichThrottle) {
+	this.cmdStation.setSpeedAndDirection(
+			this.getThrottleProperty(s,whichThrottle,'address'),
+			this.getThrottleProperty(s,whichThrottle,'speed'),
+			(this.getThrottleProperty(s,whichThrottle,'direction') === 'F'));
+}
 
-WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
+WiThrottle.prototype.handleThrottleCommand = function (s, whichThrottle, msg) {
 	var self = this,
 		cmd = msg.charAt(0),
 		arg = msg.slice(1);
 
 	switch (cmd) {
 		case 'L':
+			self.setThrottleProperty(s, whichThrottle, 'address', (arg | 0xc000));
+			self.logThrottle("SET LONG ADDRESS", s, whichThrottle);
+			s.write(whichThrottle + arg);
+			break;
+			
 		case 'S':
 			self.setThrottleProperty(s, whichThrottle, 'address', arg);
 			self.logThrottle("SET ADDRESS", s, whichThrottle);
-			s.write(whichThrottle + arg);
+			s.write(whichThrottle + arg + '(S)');
 			break;
 
 		case 'R':
@@ -121,16 +135,19 @@ WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 				self.setThrottleProperty(s,whichThrottle,'direction','F');
 				self.logThrottle("FORWARD", s, whichThrottle);
 			}
+			self.pushSettingsToCommandStation(s,whichThrottle);
 			break;
 
 		case 'I':
 			self.setThrottleProperty(s,whichThrottle,'speed',0);
 			self.logThrottle("IDLE", s, whichThrottle);
+			self.pushSettingsToCommandStation(s,whichThrottle);
 			break;
 
 		case 'X':
 			self.setThrottleProperty(s,whichThrottle,'speed',1);
 			self.logThrottle("ESTOP", s, whichThrottle);
+			self.pushSettingsToCommandStation(s,whichThrottle);
 			break;
 
 		case 'V':
@@ -140,13 +157,13 @@ WiThrottle.prototype.doThrottleCommand = function (s, whichThrottle, msg) {
 			}
 			self.setThrottleProperty(s,whichThrottle,'speed',arg);
 			self.logThrottle("SPEED", s, whichThrottle);
+			self.pushSettingsToCommandStation(s,whichThrottle);
 			break;
 
 		case 'r':
 		case 'd':
 			self.logThrottle("RELEASE/DISPATCH", s, whichThrottle);
 			self.releaseThrottle(s,whichThrottle);
-			s.write(whichThrottle + "Not Set");
 			break;
 
 		default:
