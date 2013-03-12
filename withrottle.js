@@ -17,8 +17,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 	
 	self.server = net.createServer( function (s) {
 		// keep track of new connection in clients object
-		s.__clientKey = s.remoteAddress;
-		self.clients[s.__clientKey]={'ip': s.remoteAddress};
+		self.clients[s.remoteAddress]={'ip': s.remoteAddress};
 		self.logClients("CONNECT");
 
 		self.lineHandler = carrier.carry(s);
@@ -28,7 +27,7 @@ var	WiThrottle = function(name, port, cmdStation, callback) {
 
 		s.on('end', function() {
 			// forget this client
-			delete self.clients[s.__clientKey];
+			delete self.clients[s.remoteAddress];
 			self.logClients("DISCONNECT");
 		});
 
@@ -77,27 +76,27 @@ WiThrottle.prototype.logClients = function(msg) {
 }
 
 WiThrottle.prototype.logThrottle = function(msg, s, whichThrottle) {
-	console.log(msg + ": " + util.inspect(this.clients[s.__clientKey][whichThrottle]));
+	console.log(msg + ": " + util.inspect(this.clients[s.remoteAddress][whichThrottle]));
 }
 
 
 WiThrottle.prototype.getThrottleProperty = function (s, whichThrottle, prop) {
-	if (this.clients[s.__clientKey][whichThrottle] === undefined) {
+	if (this.clients[s.remoteAddress][whichThrottle] === undefined) {
 		return undefined;
 	} else {
-		return this.clients[s.__clientKey][whichThrottle][prop];
+		return this.clients[s.remoteAddress][whichThrottle][prop];
 	}
 }
 
 WiThrottle.prototype.setThrottleProperty = function (s,whichThrottle, prop, val) {
-	if (this.clients[s.__clientKey][whichThrottle] === undefined) {
-		this.clients[s.__clientKey][whichThrottle] = {};
+	if (this.clients[s.remoteAddress][whichThrottle] === undefined) {
+		this.clients[s.remoteAddress][whichThrottle] = {};
 	}
-	this.clients[s.__clientKey][whichThrottle][prop] = val;
+	this.clients[s.remoteAddress][whichThrottle][prop] = val;
 }
 
 WiThrottle.prototype.releaseThrottle = function(s, whichThrottle) {
-	delete this.clients[s.__clientKey][whichThrottle];
+	delete this.clients[s.remoteAddress][whichThrottle];
 }
 
 
