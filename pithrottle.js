@@ -8,7 +8,7 @@ var NCE = require('./nce').NCE,
 var program = {port:8192, name:"notJMRI", device:"/dev/cu.SLAB_USBtoUART"};
 
 var cmdStation = new NCE(program.device, function (err) {
-	if (err !== undefined) {
+	if (err) {
 		console.error("Failed to initialize: " + err);
 		process.exit(1);
 	}
@@ -34,10 +34,9 @@ cmdStation.on('SEND', function (data) {
 });
 
 
-cmdStation.on('ready', function cmdStationReady() {
-
+cmdStation.on('ready', function cmdStationReady(err) {
 	// check command station version
-	cmdStation.getVersion(function(vers) {
+	cmdStation.getVersion(err,function(vers) {
 		console.log("Command Station Version: "+ hexDump(vers));
 	});
 
